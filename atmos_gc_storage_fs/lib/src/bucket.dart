@@ -1,17 +1,37 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:gcloud/storage.dart';
 
+import 'bucket_info.dart';
+import 'utils.dart';
+
 class AtmosBucket implements Bucket {
-  @override
-  String absoluteObjectName(String objectName) {
-    // TODO: implement absoluteObjectName
-    throw UnimplementedError();
+  AtmosBucket(Directory rootDir, this.bucketName)
+      : dir = Directory(p.join(rootDir.path, bucketName)),
+        file = File(p.join(rootDir.path, bucketName, '--bucketInfo.json')) {
+    validateBucketName(bucketName);
   }
 
   @override
-  // TODO: implement bucketName
-  String get bucketName => throw UnimplementedError();
+  final String bucketName;
+
+  final Directory dir;
+
+  final File file;
+
+  bool get isExist => file.existsSync();
+
+  AtmosBucketInfo get bucketInfo => AtmosBucketInfo.fromMap(
+      const JsonDecoder().convert(file.readAsStringSync()));
+
+  set bucketInfo(AtmosBucketInfo info) => file.writeAsStringSync(
+      const JsonEncoder.withIndent('  ').convert(info.toMap()));
+
+  @override
+  String absoluteObjectName(String objectName) =>
+      'gs://b/$bucketName/o/$objectName';
 
   @override
   Future delete(String name) {
